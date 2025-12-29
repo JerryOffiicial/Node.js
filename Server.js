@@ -1,5 +1,5 @@
-const http = require("http");
-const fs = require("fs");
+// const http = require("http");
+// const fs = require("fs");
 
 // const server = http.createServer((request, response) => {
 //   console.log("Request Made");
@@ -12,6 +12,10 @@ const fs = require("fs");
 //   response.write("<h4>Please do</h4>");
 //   response.end();
 
+
+const http = require("http");
+const fs = require("fs");
+const _ = require('lodash')
 const server = http.createServer((request, response) => {
   response.setHeader("Content-Type", "text/html");
 
@@ -22,7 +26,7 @@ const server = http.createServer((request, response) => {
   if (request.url == "/") {
     path += "index.html";
     response.statusCode = 200; // not necessary but manual override also fine. 201 -created, register
-  } else if (request.url == "/home") { //ridirect to another pat/loacion
+  } else if (request.url == "/home") { //ridirect to another path/loacion
     response.statusCode = 301; // 301 - permanent ridirection , 302- tempo ridirection
     response.setHeader("Location", "/");
     response.end();
@@ -50,4 +54,7 @@ const server = http.createServer((request, response) => {
 
 server.listen(3000, "localhost", () => {
   console.log("Server is Listening");
+  console.log(_.random(15,30));
+  
 });
+
