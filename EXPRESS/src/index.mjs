@@ -33,15 +33,20 @@ app.get("/", (req, res) => {
   res.send({ msg: "Root" });
 });
 
+// --------------Get Request-----------------
+
 //users
 //Query params - //localhost:3000/api/users?filter=user_name&value=go
 app.get("/api/users", (req, res) => {
-  const {query: { filter, value },} = req; //we are using the object destructuring
+  const {
+    query: { filter, value },
+  } = req; //we are using the object destructuring
   //console.log(filter, value);         //if it is req.query then no need to destructure the query, we can just destructure only the filter, value.
 
   if (filter && value) {
-    return res.send(users.filter((user) => user[filter].toLowerCase().includes(value))
-    //  Go through all users and return only the users whose filter field (like name or email) contains the search value
+    return res.send(
+      users.filter((user) => user[filter].toLowerCase().includes(value))
+      //  Go through all users and return only the users whose filter field (like name or email) contains the search value
     );
   }
   res.send(users);
@@ -63,15 +68,19 @@ app.get("/api/users/:id", (req, res) => {
   res.status(404).send({ msg: "User not found." }); //404- not found
 });
 
-
-
 //products
 //Query params - //localhost:3000/api/users?filter=user_name&value=go
 app.get("/api/products", (req, res) => {
-  const {query:{filter, value}} = req;
+  const {
+    query: { filter, value },
+  } = req;
 
-  if(filter && value){
-    return res.send(products.filter((product)=>product[filter].toLowerCase().includes(value)))
+  if (filter && value) {
+    return res.send(
+      products.filter((product) =>
+        product[filter].toLowerCase().includes(value)
+      )
+    );
   }
   res.send(products);
 });
@@ -92,19 +101,21 @@ app.get("/api/products/:id", (req, res) => {
   res.send({ msg: "User not found" });
 });
 
-
-
 //orders
 //Query params - //localhost:3000/api/users?filter=user_name&value=go
 app.get("/api/orders", (req, res) => {
-  const {query:{filter, value}} = req;
-  if(filter && value){
-    return res.send(orders.filter((order)=>order[filter].toLowerCase().includes(value)));
+  const {
+    query: { filter, value },
+  } = req;
+  if (filter && value) {
+    return res.send(
+      orders.filter((order) => order[filter].toLowerCase().includes(value))
+    );
   }
   res.send(orders);
 });
 
-//orders route param 
+//orders route param
 app.get("/api/orders/:id", (req, res) => {
   const id = parseInt(req.params.id);
   console.log(id);
@@ -121,9 +132,106 @@ app.get("/api/orders/:id", (req, res) => {
   res.status(404).send({ msg: "order is not found" });
 });
 
+// --------------Post Method-----------------
+app.use(express.json()); //must -middleware
 
+app.post("/api/users", (req, res) => {
+  console.log(req.body);
+  const { body } = req; //destructuring
+  const newUser = { id: users[users.length - 1].id + 1, ...body }; //auto mated id and adding the body data after the id
+  users.push(newUser);
+  return res.status(201).send(newUser); // 201- created
+});
+
+app.post("/api/products", (req, res) => {
+  console.log(req.body);
+  const { body } = req; //destructuring
+  const newProduct = { id: products[products.length - 1].id + 1, ...body };
+  products.push(newProduct);
+  return res.status(201).send(newProduct);
+});
+
+app.post("/api/orders", (req, res) => {
+  console.log(req.body);
+  const { body } = req; //destructuring
+  const newOrder = { id: orders[orders.length - 1].id + 1, ...body };
+  orders.push(newOrder);
+  return res.status(201).send(newOrder);
+});
+
+// ----------------Put Request(complete update) -----------------
+// app.use(express.json()); //must
+
+app.put("/api/users/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const userIndex = users.findIndex((user) => user.id === id);
+  if (userIndex === -1) {
+    return res.status(404).send({ msg: "User Not Found" });
+  }
+  const { body } = req;
+  users[userIndex] = { id: id, ...body };
+  return res.status(200).send({ msg: "User Updated" });
+});
+
+app.put("/api/products/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad request. invalid ID" });
+  }
+  const productIndex = products.findIndex((product) => product.id === id);
+
+  if (productIndex === -1) {
+    res.status(404).send({ msg: "User not found." });
+  }
+  const { body } = req;
+  products[productIndex] = { id: id, ...body };
+  res.status(200).send({ msg: "Product Updated" });
+});
+
+app.put("/api/orders/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    res.status(400).send({ msg: "Bad request. Invalid Id" });
+  }
+  const { body } = req;
+  const orderIndex = orders.findIndex((order) => order.id === id);
+  orders[orderIndex] = { id: id, ...body };
+  res.status(200).send({ msg: "order Updated" });
+});
+
+// ----------------Patch Request -----------------
+app.patch("/api/users/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const userIndex = users.findIndex((user) => user.id === id);
+  if (userIndex === -1) {
+    return res.status(404).send({ msg: "User Not Found" });
+  }
+  const { body } = req;
+  users[userIndex] = { ...users[userIndex], ...body };
+  res.sendStatus(200);
+});
+
+// ----------------Delete Request -----------------
+
+app.delete("/api/users/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const userIndex = users.findIndex((user) => user.id === id);
+  if (userIndex === -1) {
+    return res.status(404).send({ msg: "User Not Found" });
+  }
+  users.splice(userIndex, 1);
+  res.sendStatus(200);
+});
 
 app.listen(PORT, () => {
   console.log(`App is running on Port ${PORT}`);
 });
-
