@@ -1,4 +1,10 @@
 import express from "express";
+import {
+  createOrderValidationSchema,
+  createProductValidationSchema,
+  createUserValidationSchema,
+} from "./utils/validationsSchemas.mjs";
+import { validationResult, matchedData, checkSchema } from "express-validator";
 
 const app = express();
 
@@ -43,6 +49,37 @@ const getUserIndexById = (req, res, next) => {
   next();
 };
 
+const getProductIndexById = (req, res, next) => {
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const productIndex = products.findIndex((product) => product.id === id);
+
+  if (productIndex === -1) {
+    return res.status(404).send({ msg: "User Not Found" });
+  }
+
+  req.productIndex = productIndex;
+};
+
+const getOrderIndexById = (req, res, next) => {
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id)) {
+    res.send(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const orderIndex = orders.findIndex((order) => order.id === id);
+
+  if (orderIndex === -1) {
+    res.status(404).send({ msg: "Orders not found" });
+  }
+
+  req.orderIndex = orderIndex;
+  next();
+};
+
 // -------------Middle Ware ---------------
 const getParamsId = (req, res, next) => {
   const id = parseInt(req.params.id);
@@ -78,7 +115,7 @@ app.get("/api/users", (req, res) => {
 });
 
 //Route Params for users
-app.get("/api/users/:id", getParamsId ,(req, res) => {
+app.get("/api/users/:id", getParamsId, (req, res) => {
   // console.log(req.params);
   const id = req.id;
   const user = users.find((user) => user.id === id);
@@ -156,25 +193,41 @@ app.get("/api/orders/:id", (req, res) => {
 // --------------Post Request-----------------
 app.use(express.json()); //must -middleware
 
-app.post("/api/users", (req, res) => {
-  console.log(req.body);
-  const { body } = req; //destructuring
+app.post("/api/users", checkSchema(createUserValidationSchema), (req, res) => {
+  const result = validationResult(req);
+
+  if (!result.isEmpty()) {
+    return res.status(400).send({ error: result.array() });
+  }
+
+  // console.log(result);
+  // console.log(req['express-validator#contexts']);
+  const body = matchedData(req); //only validated data will enter to the body//only validated attributes are allowed
   const newUser = { id: users[users.length - 1].id + 1, ...body }; //auto mated id and adding the body data after the id
   users.push(newUser);
   return res.status(201).send(newUser); // 201- created
 });
 
-app.post("/api/products", (req, res) => {
-  console.log(req.body);
-  const { body } = req; //destructuring
-  const newProduct = { id: products[products.length - 1].id + 1, ...body };
-  products.push(newProduct);
-  return res.status(201).send(newProduct);
-});
+app.post( "/api/products", checkSchema(createProductValidationSchema), (req, res) => {
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+      return res.status(400).send({ error: result.array() });
+    }
 
-app.post("/api/orders", (req, res) => {
-  console.log(req.body);
-  const { body } = req; //destructuring
+    const body = matchedData(req);
+    const newProduct = { id: products[products.length - 1].id + 1, ...body };
+    products.push(newProduct);
+    return res.status(201).send(newProduct);
+  }
+);
+
+app.post("/api/orders", checkSchema(createOrderValidationSchema) ,(req, res) => {
+  const result = validationResult(req);
+   if(!result.isEmpty()){
+    return res.status(400).send({error: result.array()});
+   }
+
+  const body = matchedData(req); 
   const newOrder = { id: orders[orders.length - 1].id + 1, ...body };
   orders.push(newOrder);
   return res.status(201).send(newOrder);
@@ -184,7 +237,7 @@ app.post("/api/orders", (req, res) => {
 // app.use(express.json()); //must
 
 app.put("/api/users/:id", getParamsId, (req, res) => {
-  const id = req.id
+  const id = req.id;
   const userIndex = users.findIndex((user) => user.id === id);
   if (userIndex === -1) {
     return res.status(404).send({ msg: "User Not Found" });
@@ -228,34 +281,15 @@ app.patch("/api/users/:id", getUserIndexById, (req, res) => {
   res.sendStatus(200);
 });
 
-app.patch("/api/products/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-
-  if (isNaN(id)) {
-    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
-  }
-  const productIndex = products.findIndex((product) => product.id === id);
-
-  if (productIndex === -1) {
-    return res.status(404).send({ msg: "User Not Found" });
-  }
-
+app.patch("/api/products/:id", getProductIndexById, (req, res) => {
+  const productIndex = req.productIndex;
   const { body } = req;
   products[productIndex] = { ...products[productIndex], ...body };
   res.sendStatus(200);
 });
 
-app.patch("/api/orders/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-
-  if (isNaN(id)) {
-    res.send(400).send({ msg: "Bad Request. Invalid ID" });
-  }
-  const orderIndex = orders.findIndex((order) => order.id === id);
-
-  if (orderIndex === -1) {
-    res.status(404).send({ msg: "Orders not found" });
-  }
+app.patch("/api/orders/:id", getOrderIndexById, (req, res) => {
+  const orderIndex = req.orderIndex;
   const { body } = req;
   orders[orderIndex] = { ...orders[orderIndex], ...body };
 
@@ -272,28 +306,14 @@ app.delete("/api/users/:id", getUserIndexById, (req, res) => {
   res.sendStatus(200);
 });
 
-app.delete("/api/products/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) {
-    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
-  }
-  const productIndex = products.findIndex((product) => product.id === id);
-  if (productIndex === -1) {
-    return res.status(404).send({ msg: "User Not Found" });
-  }
+app.delete("/api/products/:id", getProductIndexById, (req, res) => {
+  const productIndex = req.productIndex;
   products.splice(productIndex, 1);
   res.sendStatus(200);
 });
 
-app.delete("/api/orders/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) {
-    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
-  }
-  const orderIndex = orders.findIndex((order) => order.id === id);
-  if (orderIndex === -1) {
-    return res.status(404).send({ msg: "User Not Found" });
-  }
+app.delete("/api/orders/:id", getOrderIndexById, (req, res) => {
+  const orderIndex = req.orderIndex;
   orders.splice(orderIndex, 1);
   res.sendStatus(200);
 });
