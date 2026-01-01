@@ -28,6 +28,31 @@ const orders = [
   { id: 5, date: "13-07-2025", product: "laptop" },
 ];
 
+// -------------Middle Ware ---------------
+
+const getUserIndexById = (req, res, next) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const userIndex = users.findIndex((user) => user.id === id);
+  if (userIndex === -1) {
+    return res.status(404).send({ msg: "User Not Found" });
+  }
+  req.userIndex = userIndex; //adding a custom property called userIndex to the request object //store the found user’s index there so other middleware or route handlers can use it
+  next();
+};
+
+// -------------Middle Ware ---------------
+const getParamsId = (req, res, next) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad Request, Invalid ID" }); // 400- invalid
+  }
+  req.id = id;
+  next();
+};
+
 app.get("/", (req, res) => {
   //request handler
   res.send({ msg: "Root" });
@@ -53,13 +78,9 @@ app.get("/api/users", (req, res) => {
 });
 
 //Route Params for users
-app.get("/api/users/:id", (req, res) => {
+app.get("/api/users/:id", getParamsId ,(req, res) => {
   // console.log(req.params);
-  const id = parseInt(req.params.id);
-
-  if (isNaN(id)) {
-    return res.status(400).send({ msg: "Bad Request, Invalid ID" }); // 400- invalid
-  }
+  const id = req.id;
   const user = users.find((user) => user.id === id);
   if (user) {
     console.log(user);
@@ -132,7 +153,7 @@ app.get("/api/orders/:id", (req, res) => {
   res.status(404).send({ msg: "order is not found" });
 });
 
-// --------------Post Method-----------------
+// --------------Post Request-----------------
 app.use(express.json()); //must -middleware
 
 app.post("/api/users", (req, res) => {
@@ -162,11 +183,8 @@ app.post("/api/orders", (req, res) => {
 // ----------------Put Request(complete update) -----------------
 // app.use(express.json()); //must
 
-app.put("/api/users/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) {
-    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
-  }
+app.put("/api/users/:id", getParamsId, (req, res) => {
+  const id = req.id
   const userIndex = users.findIndex((user) => user.id === id);
   if (userIndex === -1) {
     return res.status(404).send({ msg: "User Not Found" });
@@ -203,32 +221,80 @@ app.put("/api/orders/:id", (req, res) => {
 });
 
 // ----------------Patch Request -----------------
-app.patch("/api/users/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) {
-    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
-  }
-  const userIndex = users.findIndex((user) => user.id === id);
-  if (userIndex === -1) {
-    return res.status(404).send({ msg: "User Not Found" });
-  }
+app.patch("/api/users/:id", getUserIndexById, (req, res) => {
+  const userIndex = req.userIndex;
   const { body } = req;
   users[userIndex] = { ...users[userIndex], ...body };
   res.sendStatus(200);
 });
 
+app.patch("/api/products/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const productIndex = products.findIndex((product) => product.id === id);
+
+  if (productIndex === -1) {
+    return res.status(404).send({ msg: "User Not Found" });
+  }
+
+  const { body } = req;
+  products[productIndex] = { ...products[productIndex], ...body };
+  res.sendStatus(200);
+});
+
+app.patch("/api/orders/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id)) {
+    res.send(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const orderIndex = orders.findIndex((order) => order.id === id);
+
+  if (orderIndex === -1) {
+    res.status(404).send({ msg: "Orders not found" });
+  }
+  const { body } = req;
+  orders[orderIndex] = { ...orders[orderIndex], ...body };
+
+  res.sendStatus(200);
+});
+
 // ----------------Delete Request -----------------
 
-app.delete("/api/users/:id", (req, res) => {
+app.delete("/api/users/:id", getUserIndexById, (req, res) => {
+  const userIndex = req.userIndex;
+  console.log(userIndex);
+
+  users.splice(userIndex, 1);
+  res.sendStatus(200);
+});
+
+app.delete("/api/products/:id", (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) {
     return res.status(400).send({ msg: "Bad Request. Invalid ID" });
   }
-  const userIndex = users.findIndex((user) => user.id === id);
-  if (userIndex === -1) {
+  const productIndex = products.findIndex((product) => product.id === id);
+  if (productIndex === -1) {
     return res.status(404).send({ msg: "User Not Found" });
   }
-  users.splice(userIndex, 1);
+  products.splice(productIndex, 1);
+  res.sendStatus(200);
+});
+
+app.delete("/api/orders/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).send({ msg: "Bad Request. Invalid ID" });
+  }
+  const orderIndex = orders.findIndex((order) => order.id === id);
+  if (orderIndex === -1) {
+    return res.status(404).send({ msg: "User Not Found" });
+  }
+  orders.splice(orderIndex, 1);
   res.sendStatus(200);
 });
 
