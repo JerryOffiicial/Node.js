@@ -5,3 +5,4 @@
 5."start:dev": "nodemon ./src/index.mjs", // in package.json -  under scripts, has to mention these
     "start": "node ./src/index.mjs"
 6.npm i express-validator
+7.npm i cookie-parser
