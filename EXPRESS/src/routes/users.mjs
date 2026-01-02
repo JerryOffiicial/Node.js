@@ -43,8 +43,7 @@ router.get("/api/users/:id", getParamsId, (req, res) => {
   res.status(404).send({ msg: "User not found." }); //404- not found
 });
 
-router.post(
-  "/api/users",
+router.post("/api/users",
   checkSchema(createUserValidationSchema),
   (req, res) => {
     const result = validationResult(req);

@@ -10,10 +10,10 @@ const router = Router();
 
 //Query params - //localhost:3000/api/users?filter=user_name&value=go
 router.get("/api/products", (req, res) => {
-  const {
-    query: { filter, value },
-  } = req;
-
+  req.session.visited = true;//session now will store- initialized it- won't change the session id
+  console.log(req.session.id);
+  
+  const {query: { filter, value }} = req;
   if (filter && value) {
     return res.send(
       products.filter((product) =>
