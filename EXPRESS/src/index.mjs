@@ -5,10 +5,18 @@ import session from "express-session";
 import { Strategy as LocalStrategy } from "passport-local";
 import passport from "passport";
 import { users } from "./utils/constants.mjs";
+import mongoose from "mongoose";
+import { User } from "./mongoose/user.mjs";
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser("Jerry"));
+
+mongoose
+  .connect("mongodb://localhost/express")
+  .then(() => console.log("DB Connected"))
+  .catch((err) => console.log(`Error: ${err}`));
+
 app.use(
   session({
     secret: "top secret",
@@ -26,15 +34,20 @@ app.use(passport.session()); //craeting a session
 passport.use(
   new LocalStrategy(
     { usernameField: "user_name", passwordField: "password" },
-    (user_name, password, done) => {
-      const user = users.find((user) => user.user_name == user_name);
-      if (!user) {
-        return done(null, false, { message: "Invalid username" }); //done(error, user, info)
+    async (user_name, password, done) => {
+      try {
+        const user = await User.findOne({ user_name: user_name });
+        if (!user) {
+          return done(null, false, { message: "Invalid username" }); //done(error, user, info)
+        }
+        if (user.password !== password) {
+          return done(null, false, { message: "Incorrect Password" }); //done(error, user, info)
+        }
+        return done(null, user);
+      } catch (err) {
+        console.log(err);
+        return done(err, false);
       }
-      if (user.password !== password) {
-        return done(null, false, { message: "Incorrect Password" }); //done(error, user, info)
-      }
-      return done(null, user);
     }
   )
 );
@@ -43,9 +56,16 @@ passport.serializeUser((user, done) => {
   done(null, user.id);
 });
 
-passport.deserializeUser((id, done) => {
-  const user = users.find((user) => user.id === id);
-  done(null, user||false)
+passport.deserializeUser(async (id, done) => {
+  // const user = users.find((user) => user.id === id);
+
+  try {
+    const user = await User.findById(id);
+    done(null, user || false);
+  } catch (err) {
+    console.log(err);
+    done(err, false);
+  }
 });
 
 app.use(routes);

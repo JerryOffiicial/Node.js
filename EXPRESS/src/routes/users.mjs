@@ -4,6 +4,7 @@ import { users } from "../utils/constants.mjs";
 import { createUserValidationSchema } from "../utils/validationsSchemas.mjs";
 import { validationResult, matchedData, checkSchema } from "express-validator";
 import { getUserIndexById } from "../utils/middlewares.mjs";
+import { User } from "../mongoose/user.mjs";
 
 const router = Router();
 
@@ -11,7 +12,7 @@ const router = Router();
 router.get("/api/users", (req, res) => {
   console.log(req.signedCookies);
 
-//   if (req.cookies.user && req.cookies.user === "Admin") {
+  //   if (req.cookies.user && req.cookies.user === "Admin") {
   if (req.signedCookies.user && req.signedCookies.user === "Admin") {
     const {
       query: { filter, value },
@@ -25,9 +26,10 @@ router.get("/api/users", (req, res) => {
       );
     }
     return res.send(users);
-  }
-  else{
-     return res.send({msg: "You are not an Admin/ you don't have the right cookie"})
+  } else {
+    return res.send({
+      msg: "You are not an Admin/ you don't have the right cookie",
+    });
   }
 });
 
@@ -43,9 +45,10 @@ router.get("/api/users/:id", getParamsId, (req, res) => {
   res.status(404).send({ msg: "User not found." }); //404- not found
 });
 
-router.post("/api/users",
+router.post(
+  "/api/users",
   checkSchema(createUserValidationSchema),
-  (req, res) => {
+  async (req, res) => {
     const result = validationResult(req);
 
     if (!result.isEmpty()) {
@@ -55,9 +58,18 @@ router.post("/api/users",
     // console.log(result);
     // console.log(req['express-validator#contexts']);
     const body = matchedData(req); //only validated data will enter to the body//only validated attributes are allowed
-    const newUser = { id: users[users.length - 1].id + 1, ...body }; //auto mated id and adding the body data after the id
-    users.push(newUser);
-    return res.status(201).send(newUser); // 201- created
+    // const newUser = { id: users[users.length - 1].id + 1, ...body }; //auto mated id and adding the body data after the id
+    // users.push(newUser);
+
+    const newUser = new User(body);
+
+    try {
+      const savedUser = await newUser.save();
+      return res.status(201).send(savedUser); // 201- created
+    } catch (err) {
+      console.log(err);
+      return res.status(400).send({msg: "User not saved"});
+    }
   }
 );
 
