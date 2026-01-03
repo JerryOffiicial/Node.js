@@ -12,9 +12,9 @@ export const createUserValidationSchema = {
     },
   },
 
-  age: {
+  password: {
     notEmpty: {
-      errorMessage: "Age must not be empty",
+      errorMessage: "password must not be empty",
     },
   },
 };
