@@ -7,6 +7,8 @@ import passport from "passport";
 import { users } from "./utils/constants.mjs";
 import mongoose from "mongoose";
 import { User } from "./mongoose/user.mjs";
+import { comparePassword } from "./utils/helper.mjs";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const app = express();
 app.use(express.json());
@@ -40,13 +42,43 @@ passport.use(
         if (!user) {
           return done(null, false, { message: "Invalid username" }); //done(error, user, info)
         }
-        if (user.password !== password) {
+        if (!comparePassword(password, user.password)) {
           return done(null, false, { message: "Incorrect Password" }); //done(error, user, info)
         }
         return done(null, user);
       } catch (err) {
         console.log(err);
         return done(err, false);
+      }
+    }
+  )
+);
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: "Past the id here",
+      clientSecret: "Paste the secret id here",
+      callbackURL: "/auth/google/cb",
+    },
+    async function (accessToken, refreshToken, profile, done) {
+      try {
+        const user = await User.findOne({ googleId: profile.id });
+        if (user) {
+          return done(null, user);
+        }
+
+        const email = profile.emails?.[0]?.value;
+
+        const newUser = await User.create({
+          user_name: profile.displayName,
+          googleId: profile.id,
+          email,
+        });
+
+        return done(null, newUser);
+      } catch (err) {
+        return done(err, null);
       }
     }
   )
@@ -103,6 +135,23 @@ app.post("/login", (req, res, next) => {
     });
   })(req, res, next);
 });
+
+app.get(
+  "/auth/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+app.get(
+  "/auth/google/cb",
+  passport.authenticate("google", {
+    failureRedirect: "/",
+  }),
+  (req, res) => {
+    res.send({ msg: "Google Login successful", user: req.user });
+  }
+);
+
+app.get("/auth/google/cb");
 
 app.listen(PORT, () => {
   console.log(`App is running on Port ${PORT}`);
