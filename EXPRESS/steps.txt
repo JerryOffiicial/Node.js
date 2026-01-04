@@ -9,3 +9,5 @@
 8.npm i express-session
 9.npm i passport passport-local //it will match the credential on own, locally
 10.npm i mongoose //Object Relational Mapping. 
+11.npm i bcrypt // for password privacy
+12.npm install passport-google-oauth20

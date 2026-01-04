@@ -5,6 +5,7 @@ import { createUserValidationSchema } from "../utils/validationsSchemas.mjs";
 import { validationResult, matchedData, checkSchema } from "express-validator";
 import { getUserIndexById } from "../utils/middlewares.mjs";
 import { User } from "../mongoose/user.mjs";
+import { hashPassword } from "../utils/helper.mjs";
 
 const router = Router();
 
@@ -58,6 +59,8 @@ router.post(
     // console.log(result);
     // console.log(req['express-validator#contexts']);
     const body = matchedData(req); //only validated data will enter to the body//only validated attributes are allowed
+    body.password = hashPassword(body.password)
+
     // const newUser = { id: users[users.length - 1].id + 1, ...body }; //auto mated id and adding the body data after the id
     // users.push(newUser);
 
